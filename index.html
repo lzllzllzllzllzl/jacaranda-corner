@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>蓝花楹街角 · Jacaranda Corner — Sydney</title>
+<style>
+  /* ============ 页面：留白版式 ============ */
+  :root{
+    --bg1:#f7f3ea; --bg2:#ece5d6; --ink:#3d382f; --muted:rgba(61,56,47,.52);
+    --line:rgba(61,56,47,.18); --accent:#7b6cc0;
+  }
+  body[data-mode="dusk"]{
+    --bg1:#f8e3cb; --bg2:#ecc9b0; --ink:#4c3427; --muted:rgba(76,52,39,.55);
+    --line:rgba(76,52,39,.2); --accent:#c9704a;
+  }
+  body[data-mode="night"]{
+    --bg1:#1a1d30; --bg2:#0d0f1c; --ink:#cdd2ea; --muted:rgba(205,210,234,.5);
+    --line:rgba(205,210,234,.18); --accent:#9189d8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family:"Source Han Serif SC","Noto Serif SC","Songti SC","STSong","SimSun",Georgia,"Times New Roman",serif;
+    color:var(--ink);
+    background:radial-gradient(130% 105% at 50% 22%, var(--bg1) 0%, var(--bg2) 78%);
+    transition:background 1.6s ease, color 1.6s ease;
+    overflow:hidden;
+  }
+  #stage{position:fixed;inset:0}
+  #stage canvas{display:block}
+  .ui{position:fixed;z-index:6}
+  header{top:clamp(22px,5.5vh,52px);left:clamp(24px,5vw,60px);user-select:none;pointer-events:none}
+  .overline{font:500 10.5px/1 "Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;letter-spacing:.38em;color:var(--muted)}
+  h1{font-size:clamp(26px,3.2vw,38px);font-weight:600;letter-spacing:.16em;margin:12px 0 8px}
+  .sub{font-size:12.5px;letter-spacing:.1em;color:var(--muted)}
+  .coord{margin-top:4px;font:400 10px/1 "Helvetica Neue",Arial,sans-serif;letter-spacing:.3em;color:var(--muted);opacity:.75}
+  .modes{
+    bottom:clamp(22px,5.5vh,48px);left:50%;transform:translateX(-50%);
+    display:flex;border:1px solid var(--line);border-radius:999px;padding:4px;
+    background:color-mix(in srgb, var(--bg1) 62%, transparent);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    transition:background 1.6s ease, border-color 1.6s ease;
+  }
+  .modes button{
+    appearance:none;border:0;background:transparent;color:var(--muted);
+    font-family:inherit;font-size:13px;letter-spacing:.24em;padding:9px 22px 9px calc(22px + .24em);
+    border-radius:999px;cursor:pointer;transition:all .45s ease;white-space:nowrap;
+  }
+  .modes button:hover{color:var(--ink)}
+  .modes button.active{background:var(--ink);color:var(--bg1)}
+  .hint{
+    bottom:clamp(26px,5.8vh,50px);left:clamp(24px,5vw,60px);user-select:none;pointer-events:none;
+    font-size:11px;letter-spacing:.14em;line-height:1.9;color:var(--muted);
+  }
+  .credit{
+    bottom:clamp(26px,5.8vh,50px);right:clamp(24px,5vw,60px);text-align:right;user-select:none;pointer-events:none;
+    font-size:10.5px;letter-spacing:.22em;line-height:1.9;color:var(--muted);
+  }
+  #veil{
+    position:fixed;inset:0;z-index:9;display:grid;place-items:center;
+    background:var(--bg1);transition:opacity .9s ease;
+    font-size:12px;letter-spacing:.42em;color:var(--muted);
+  }
+  #veil.off{opacity:0;pointer-events:none}
+  @media (max-width:640px){
+    .hint,.credit{display:none}
+    .modes button{padding:8px 16px 8px calc(16px + .24em);font-size:12px}
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body data-mode="day">
+  <div id="stage"></div>
+
+  <header class="ui">
+    <p class="overline">MICRO DIORAMA · 三渲二</p>
+    <h1>蓝花楹街角</h1>
+    <p class="sub">Jacaranda Corner · Sydney — 转角的三层小楼与盛放的花</p>
+    <p class="coord">33°52′S · 151°12′E — OCT</p>
+  </header>
+
+  <nav class="ui modes" id="modes">
+    <button data-mode="day" class="active">白天</button>
+    <button data-mode="dusk">黄昏</button>
+    <button data-mode="night">夜晚</button>
+  </nav>
+
+  <p class="ui hint">拖拽旋转 · 滚轮缩放<br>右键平移 · 双击复位</p>
+  <p class="ui credit"> Sydney historic corner<br>紫花 × 暖灯 · 冷暖之间</p>
+
+  <div id="veil"><span>正在搭建街角 …</span></div>
+
+  <script>
+    /* CDN 加载失败时的提示（模块内成功渲染后会撤下遮罩） */
+    setTimeout(function(){
+      var v = document.getElementById('veil');
+      if (v && !v.classList.contains('off'))
+        v.innerHTML = '<span>three.js 加载较慢或被拦截 — 请检查网络，或参见 README 离线运行</span>';
+    }, 9000);
+  </script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+/* ================================================================
+   0. 渲染器 / 场景 / 相机
+================================================================ */
+const stage = document.getElementById('stage');
+const veil  = document.getElementById('veil');
+
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0x000000, 0);                 // 透明背景，让页面留白透出
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.NeutralToneMapping;     // 中性色调映射，保住紫色饱和度
+renderer.toneMappingExposure = 1.0;
+stage.appendChild(renderer.domElement);
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.1, 120);
+
+/* 默认机位：接近正面的 3/4 视角，略俯视 —— 入口、阳台、长椅可见，屋顶微露 */
+const HOME_P = new THREE.Vector3(9.8, 7.4, 11.8);
+const HOME_T = new THREE.Vector3(-0.3, 2.9, -0.2);
+camera.position.copy(HOME_P);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(HOME_T);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 6;
+controls.maxDistance = 26;
+controls.maxPolarAngle = 1.48;   // 不允许钻到底座以下
+controls.update();
+
+/* 环境贴图：只为玻璃反射与金属高光服务（toon 材质不受影响） */
+{
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 0.5;
+  pmrem.dispose();
+}
+
+/* ================================================================
+   1. 三渲二材质工厂
+================================================================ */
+/* 4 级明暗渐变贴图 → 色阶化着色（三渲二的核心） */
+const gradientMap = (() => {
+  const data = new Uint8Array([92, 152, 208, 255]);
+  const tex  = new THREE.DataTexture(data, data.length, 1, THREE.RedFormat);
+  tex.minFilter = tex.magFilter = THREE.NearestFilter;
+  tex.generateMipmaps = false;
+  tex.needsUpdate = true;
+  return tex;
+})();
+const toon = (color, opts = {}) => new THREE.MeshToonMaterial({ color, gradientMap, ...opts });
+
+const MAT = {
+  /* —— 建筑 —— */
+  wall:        toon(0xf8f1e2),
+  trim:        toon(0xebe0c8),
+  plinth:      toon(0xd8ccb0),
+  joinery:     toon(0x4b4f8e),          // 门窗：蓝紫木作
+  joineryDark: toon(0x363a6b),
+  door:        toon(0x53589f),
+  roof:        toon(0x49506b),
+  chimney:     toon(0xb3674f),          // 暖色陶土烟囱
+  pot:         toon(0xa75a44),
+  /* —— 木与铁 —— */
+  woodPurple:  toon(0x8f6fc8),          // 紫色木条（长椅 / 阳台地板）
+  woodPurpleD: toon(0x5e4b8c),
+  iron:        new THREE.MeshStandardMaterial({ color:0x33375e, metalness:.62, roughness:.42 }),
+  brass:       new THREE.MeshStandardMaterial({ color:0xcfa23c, metalness:.9,  roughness:.28 }),
+  lampIron:    new THREE.MeshStandardMaterial({ color:0x2c3050, metalness:.6,  roughness:.45 }),
+  /* —— 玻璃 —— */
+  glass:       new THREE.MeshStandardMaterial({ color:0xaac4de, metalness:.18, roughness:.12, envMapIntensity:.85 }),
+  litGlass:    new THREE.MeshStandardMaterial({ color:0x9db4cc, metalness:.12, roughness:.16, envMapIntensity:.6,
+                 emissive:0xffb45c, emissiveIntensity:0 }),        // 夜晚点亮
+  shopGlass:   new THREE.MeshStandardMaterial({ color:0x9db8d2, metalness:.15, roughness:.12, envMapIntensity:.75,
+                 transparent:true, opacity:.72 }),
+  interior:    new THREE.MeshStandardMaterial({ color:0x241f2e, emissive:0xffa04e, emissiveIntensity:0 }),
+  lampGlass:   new THREE.MeshStandardMaterial({ color:0x453a28, emissive:0xffc27a, emissiveIntensity:0 }),
+  sconceGlass: new THREE.MeshStandardMaterial({ color:0x453a28, emissive:0xffb868, emissiveIntensity:0 }),
+  /* —— 植物与地面 —— */
+  trunk:       toon(0x76614e),
+  twig:        toon(0x67564a),
+  leaf:        toon(0x647c49),
+  cluster:     toon(0xffffff, { vertexColors:true }),   // 花簇：顶点色（紫阶变化）
+  soil:        toon(0x5a4a3a),
+  sidewalk:    toon(0xdcd2ba),
+  road:        toon(0x555a72),
+  curb:        toon(0xcabfa4),
+  paint:       toon(0xe9e3d1),
+  baseTop:     toon(0xf0e9d9),
+  baseStep:    toon(0xd9d0ba),
+};
+
+/* ================================================================
+   2. 灯光与时间系统（白天 / 黄昏 / 夜晚）
+================================================================ */
+const hemi = new THREE.HemisphereLight(0xc2d8f4, 0xe8dfc6, 1.0);
+scene.add(hemi);
+const amb = new THREE.AmbientLight(0xffffff, 0.35);
+scene.add(amb);
+
+const sun = new THREE.DirectionalLight(0xfff1d6, 3.4);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -9; sun.shadow.camera.right = 9;
+sun.shadow.camera.top  =  9; sun.shadow.camera.bottom = -9;
+sun.shadow.camera.near = 1;  sun.shadow.camera.far = 45;
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.05;
+scene.add(sun, sun.target);
+
+const C = h => new THREE.Color(h);
+const V = (x,y,z) => new THREE.Vector3(x,y,z);
+
+const MODES = {
+  day:   { sunI:3.4, sunC:C(0xfff1d6), sunPos:V(9,15,7.5),     hemiI:1.0,  hemiSky:C(0xc2d8f4), hemiGnd:C(0xe8dfc6),
+           ambI:.4,  lampI:0,  scI:0, winE:0,    lampE:0,   scE:0,   glowO:0,   petalC:C(0xffffff), envI:.55, expo:1.0 },
+  dusk:  { sunI:2.1, sunC:C(0xff9d5c), sunPos:V(13.5,3.2,8.5),  hemiI:.55,  hemiSky:C(0xd9a8c4), hemiGnd:C(0x93809b),
+           ambI:.25, lampI:10, scI:4, winE:1.25, lampE:1.6, scE:1.5, glowO:.5,  petalC:C(0xf2e2ff), envI:.35, expo:1.02 },
+  night: { sunI:.42, sunC:C(0xa8b8f0), sunPos:V(-7,11,-6),      hemiI:.16,  hemiSky:C(0x46508c), hemiGnd:C(0x1e2036),
+           ambI:.08, lampI:9,  scI:5, winE:1.8,  lampE:2.4, scE:2.2, glowO:.72, petalC:C(0x9aa0cc), envI:.15, expo:.98 },
+};
+function snapshot(m){
+  return { sunI:m.sunI, sunC:m.sunC.clone(), sunPos:m.sunPos.clone(), hemiI:m.hemiI, hemiSky:m.hemiSky.clone(),
+           hemiGnd:m.hemiGnd.clone(), ambI:m.ambI, lampI:m.lampI, scI:m.scI, winE:m.winE, lampE:m.lampE,
+           scE:m.scE, glowO:m.glowO, petalC:m.petalC.clone(), envI:m.envI, expo:m.expo };
+}
+let tgt = MODES.day;
+const cur = snapshot(tgt);
+
+const lampLights = [];      // 路灯点光源
+const glowSprites = [];     // 光晕精灵
+let sconceLight = null;
+let petalMatFall = null;    // 飘落花瓣材质（随时间调色）
+let groundPetalMat = null;  // 地面积落花瓣材质
+const swayers = [];         // 树梢轻摆登记 {node, amp, speed, phase}
+const crownZones = [];      // 花瓣飘落源 {x, z, y, r}
+
+/* ================================================================
+   3. 通用小工具
+================================================================ */
+const UP = new THREE.Vector3(0,1,0);
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function jitterGeom(g, amp, rng){
+  const pos = g.attributes.position, v = new THREE.Vector3();
+  for(let i=0;i<pos.count;i++){ v.fromBufferAttribute(pos,i); const m = 1+(rng()-0.5)*amp; pos.setXYZ(i, v.x*m, v.y*m, v.z*m); }
+  g.computeVertexNormals();
+}
+function paintGeom(g, c){
+  const n = g.attributes.position.count, arr = new Float32Array(n*3);
+  for(let i=0;i<n;i++){ arr[i*3]=c.r; arr[i*3+1]=c.g; arr[i*3+2]=c.b; }
+  g.setAttribute('color', new THREE.BufferAttribute(arr,3));
+}
+function textTexture(text, { w=512, h=128, bg='#f3ead6', color='#4a4f8f', font='600 64px Georgia, "Times New Roman", serif' }={}){
+  const c = document.createElement('canvas'); c.width=w; c.height=h;
+  const x = c.getContext('2d');
+  x.fillStyle=bg; x.fillRect(0,0,w,h);
+  x.strokeStyle=color; x.globalAlpha=.5; x.lineWidth=3; x.strokeRect(10,10,w-20,h-20); x.globalAlpha=1;
+  x.fillStyle=color; x.font=font; x.textAlign='center'; x.textBaseline='middle';
+  x.fillText(text, w/2, h/2+3);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return t;
+}
+/* 接触阴影软贴片（径向渐变），配合实时阴影加强“落地感” */
+const aoTex = (() => {
+  const c = document.createElement('canvas'); c.width=c.height=256;
+  const x = c.getContext('2d');
+  const g = x.createRadialGradient(128,128,10,128,128,128);
+  g.addColorStop(0,'rgba(0,0,0,.5)'); g.addColorStop(.55,'rgba(0,0,0,.22)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle=g; x.fillRect(0,0,256,256);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+function aoPatch(w, d, opacity, x, y, z){
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d),
+    new THREE.MeshBasicMaterial({ map:aoTex, transparent:true, opacity, depthWrite:false }));
+  m.rotation.x = -Math.PI/2; m.position.set(x, y, z); m.renderOrder = 1;
+  scene.add(m); return m;
+}
+function glowSprite(scale, color=0xffb36a){
+  const c = document.createElement('canvas'); c.width=c.height=128;
+  const x = c.getContext('2d');
+  const g = x.createRadialGradient(64,64,4,64,64,64);
+  g.addColorStop(0,'rgba(255,220,170,1)'); g.addColorStop(.35,'rgba(255,180,110,.55)'); g.addColorStop(1,'rgba(255,170,90,0)');
+  x.fillStyle=g; x.fillRect(0,0,128,128);
+  const m = new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(c), color, transparent:true, opacity:0,
+    blending:THREE.AdditiveBlending, depthWrite:false });
+  const s = new THREE.Sprite(m); s.scale.set(scale, scale, 1);
+  glowSprites.push(s); return s;
+}
+
+/* ================================================================
+   4. 底座与地面
+   平面坐标约定：所有轮廓以“平面 (x,z)”定义，映射到 shape 的 (x,-z)，
+   再 rotateX(-90°) 立起来 —— 与建筑墙体共用一套 footprint。
+================================================================ */
+function footprintShape(){
+  const s = new THREE.Shape();
+  s.moveTo(-3.6, -2.2);
+  s.lineTo( 1.0, -2.2);
+  s.absarc(1.0, -1.2, 1.0, -Math.PI/2, 0, false);   // 圆弧转角（外凸）
+  s.lineTo( 2.0,  3.6);
+  s.lineTo(-0.6,  3.6);
+  s.lineTo(-0.6,  0.6);
+  s.lineTo(-3.6,  0.6);
+  s.closePath();
+  return s;
+}
+function roadOutlineInto(p, inset=0){ // 路面轮廓（inset>0 时用于人行道挖洞，避免与外边界重合）
+  const e = 5 - Math.max(inset, 0);
+  p.moveTo(-e, -3.5);
+  p.lineTo(2.3, -3.5);
+  p.absarc(2.3, -2.3, 1.2, -Math.PI/2, 0, false);   // 转角路缘弧
+  p.lineTo(3.5,  e);
+  p.lineTo(4.95, e);
+  p.lineTo(4.95, -(e - .02));
+  p.lineTo(-e,   -(e - .02));
+  p.closePath();
+}
+
+/* —— 展示底座（方形薄底座 + 一级台口 + 铭牌） —— */
+{
+  const top = new THREE.Mesh(new THREE.BoxGeometry(10.3, .36, 10.3), MAT.baseTop);
+  top.position.y = -0.18; top.receiveShadow = true; scene.add(top);
+  const step = new THREE.Mesh(new THREE.BoxGeometry(10.9, .18, 10.9), MAT.baseStep);
+  step.position.y = -0.45; step.receiveShadow = step.castShadow = true; scene.add(step);
+  const plate = new THREE.Mesh(new THREE.PlaneGeometry(3.0, .24),
+    new THREE.MeshBasicMaterial({ map:textTexture('SYDNEY · JACARANDA CORNER', { w:1024, h:80, bg:'#b89a52', color:'#3a3150', font:'600 46px Georgia, serif' }) }));
+  plate.position.set(0, -0.45, 5.452); scene.add(plate);
+}
+
+/* —— 人行道（含建筑与路面两个洞） —— */
+{
+  const s = new THREE.Shape();
+  s.moveTo(-5,-5); s.lineTo(5,-5); s.lineTo(5,5); s.lineTo(-5,5); s.closePath();
+  const fb = footprintShape();
+  const b = new THREE.Path();
+  const pts = fb.getPoints(64);
+  b.moveTo(pts[0].x, pts[0].y);
+  for(let i=1;i<pts.length;i++) b.lineTo(pts[i].x, pts[i].y);
+  b.closePath();
+  s.holes.push(b);
+  const r = new THREE.Path(); roadOutlineInto(r, .02); s.holes.push(r);
+  const g = new THREE.ExtrudeGeometry(s, { depth:.07, bevelEnabled:false, curveSegments:32 });
+  const m = new THREE.Mesh(g, MAT.sidewalk);
+  m.rotation.x = -Math.PI/2; m.receiveShadow = true;
+  scene.add(m);
+}
+
+/* —— 车行道 + 斑马线 + 路缘 + 井盖 —— */
+{
+  const s = new THREE.Shape(); roadOutlineInto(s);
+  const m = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth:.05, bevelEnabled:false, curveSegments:32 }), MAT.road);
+  m.rotation.x = -Math.PI/2; m.position.y = 0.005; m.receiveShadow = true; scene.add(m);
+
+  const curbA = new THREE.Mesh(new THREE.BoxGeometry(7.3, .06, .1), MAT.curb);
+  curbA.position.set(-1.35, .055, 3.5); curbA.receiveShadow = true; scene.add(curbA);
+  const curbB = new THREE.Mesh(new THREE.BoxGeometry(.1, .06, 7.3), MAT.curb);
+  curbB.position.set(3.5, .055, -1.35); curbB.receiveShadow = true; scene.add(curbB);
+  const curbArc = new THREE.Mesh(new THREE.TorusGeometry(1.2, .045, 8, 28, Math.PI/2), MAT.curb);
+  curbArc.rotation.x = Math.PI/2; curbArc.position.set(2.3, .075, 2.3); scene.add(curbArc);
+
+  for(let i=0;i<4;i++){ // 斑马线
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(1.0, .021, .3), MAT.paint);
+    bar.position.set(-1.5, .058, 3.75 + i*.33); bar.receiveShadow = true; scene.add(bar);
+  }
+  const hole = new THREE.Mesh(new THREE.CylinderGeometry(.28, .28, .02, 20), toon(0x40465e));
+  hole.position.set(4.2, .058, 1.2); scene.add(hole);
+}
+
+/* 建筑落地的整体接触阴影 */
+aoPatch(8.6, 6.6, .34, -0.6, .085, -0.5);
+
+/* ================================================================
+   5. 建筑 —— 奶油白三层历史建筑（悉尼转角铺）
+   高度：地下一层檐线 2.62 / 二层 5.12 / 顶部 7.92
+================================================================ */
+const WALL_H = 7.92;
+function extrudeFootprint(mat, depth, y=0, scaleXY=1){
+  const m = new THREE.Mesh(new THREE.ExtrudeGeometry(footprintShape(), { depth, bevelEnabled:false, curveSegments:32 }), mat);
+  m.rotation.x = -Math.PI/2;
+  m.scale.set(scaleXY, scaleXY, 1);
+  m.position.y = y;
+  m.castShadow = m.receiveShadow = true;
+  scene.add(m); return m;
+}
+const wall = extrudeFootprint(MAT.wall, WALL_H, .02);          // 主体
+extrudeFootprint(MAT.plinth, .26, 0, 1.03);                    // 勒脚
+extrudeFootprint(MAT.trim,  .1, 2.62, 1.012);                  // 一层檐带
+extrudeFootprint(MAT.trim,  .1, 5.12, 1.012);                  // 二层檐带
+extrudeFootprint(MAT.trim,  .3, 7.42, 1.02);                   // 大檐口
+extrudeFootprint(MAT.trim,  .12, 7.86, 1.035);                 // 压顶
+
+/* —— 屋顶（坡板微露 + 双烟囱） —— */
+{
+  const a = new THREE.Mesh(new THREE.BoxGeometry(5.5, .12, 2.7), MAT.roof);
+  a.position.set(-0.85, 7.98, 0.75); a.rotation.x = .22; a.castShadow = true; scene.add(a);
+  const b = new THREE.Mesh(new THREE.BoxGeometry(2.6, .12, 3.0), MAT.roof);
+  b.position.set(0.75, 8.02, -2.05); b.rotation.x = .18; b.castShadow = true; scene.add(b);
+
+  const chim = (x, z) => {
+    const g = new THREE.Group(); g.position.set(x, 7.8, z);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(.52, 1.1, .52), MAT.chimney);
+    body.position.y = .55; body.castShadow = true; g.add(body);
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(.66, .12, .66), MAT.trim);
+    cap.position.y = 1.16; g.add(cap);
+    for(const dx of [-.15, .15]){
+      const pot = new THREE.Mesh(new THREE.CylinderGeometry(.09, .11, .34, 10), MAT.pot);
+      pot.position.set(dx, 1.36, 0); pot.castShadow = true; g.add(pot);
+    }
+    scene.add(g);
+  };
+  chim(-2.8, 1.35); chim(1.15, -2.7);
+}
+
+/* —— 窗洞构件生成（原点在窗底中心，贴附于墙面） —— */
+function archShapePts(w, h){
+  const s = new THREE.Shape(); const r = w/2;
+  s.moveTo(-r, 0); s.lineTo(-r, h); s.absarc(0, h, r, Math.PI, 0, true); s.lineTo(r, 0); s.closePath();
+  return s;
+}
+function makeWindow({ w=.8, h=1.3, arch=false, lit=false, sill=true }={}){
+  const g = new THREE.Group();
+  const gm = lit ? MAT.litGlass : MAT.glass;
+  if(arch){
+    const outer = archShapePts(w+.14, h+.07);
+    outer.holes.push(archShapePts(w, h));
+    const frame = new THREE.Mesh(new THREE.ExtrudeGeometry(outer, { depth:.1, bevelEnabled:false, curveSegments:14 }), MAT.joineryDark);
+    frame.position.z = -.02; g.add(frame);
+    const glass = new THREE.Mesh(new THREE.ExtrudeGeometry(archShapePts(w-.02, h-.01), { depth:.02, bevelEnabled:false, curveSegments:14 }), gm);
+    glass.position.z = .06; g.add(glass);
+  }else{
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(w+.14, h+.14, .1), MAT.joineryDark);
+    frame.position.set(0, h/2, .03); g.add(frame);
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(w, h, .02), gm);
+    glass.position.set(0, h/2, .07); g.add(glass);
+  }
+  if(sill){
+    const s = new THREE.Mesh(new THREE.BoxGeometry(w+.26, .07, .18), MAT.trim);
+    s.position.set(0, -.035, .06); g.add(s);
+  }
+  g.traverse(o => { if(o.isMesh) o.castShadow = true; });
+  return g;
+}
+/* 固定随机（点亮窗的分布稳定） */
+const litRng = mulberry32(20260601);
+const litDice = () => litRng() < .58;
+
+const fa = new THREE.Group(); scene.add(fa);   // 立面 A（墙面 z=2.2，面向 +Z）
+const fb = new THREE.Group(); scene.add(fb);   // 立面 B（墙面 x=2.0，面向 +X）
+const put = (parent, obj, along, y) => {
+  if(parent === fa){ obj.position.set(along, y, 2.2); }
+  else { obj.position.set(2.0, y, along); obj.rotation.y = Math.PI/2; }
+  parent.add(obj);
+};
+
+/* —— 店面（一层）：橱窗 + 立柱 + 紫木护板 + 招牌 —— */
+function makeShopWindow(w=1.25, h=1.55, lit=false){
+  const g = new THREE.Group();
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(w+.16, h+.2, .12), MAT.joineryDark);
+  frame.position.set(0, .3+h/2, .05); g.add(frame);
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(w, h, .02), MAT.shopGlass);
+  glass.position.set(0, .3+h/2, .1); g.add(glass);
+  const mv = new THREE.Mesh(new THREE.BoxGeometry(.035, h, .04), MAT.joineryDark);
+  mv.position.set(0, .3+h/2, .115); g.add(mv);
+  const mh = new THREE.Mesh(new THREE.BoxGeometry(w, .04, .04), MAT.joineryDark);
+  mh.position.set(0, .3+h*.72, .115); g.add(mh);
+  const riser = new THREE.Mesh(new THREE.BoxGeometry(w+.16, .34, .12), MAT.woodPurpleD);
+  riser.position.set(0, .15, .05); g.add(riser);          // 紫木护板
+  const inner = new THREE.Mesh(new THREE.PlaneGeometry(w-.05, h-.05), MAT.interior);
+  inner.position.set(0, .3+h/2, .02); g.add(inner);       // 店内暖光（夜里亮）
+  g.traverse(o => { if(o.isMesh) o.castShadow = true; });
+  return g;
+}
+{
+  /* 立面 A：两扇橱窗 + 立柱 + 招牌 */
+  put(fa, makeShopWindow(), -2.5, 0);
+  put(fa, makeShopWindow(), -1.0, 0);
+  for(const px of [-3.32, -1.78, -0.28]){
+    const pil = new THREE.Mesh(new THREE.BoxGeometry(.26, 1.94, .14), MAT.trim);
+    pil.position.set(px, 1.26, 2.06); pil.castShadow = true; fa.add(pil);
+  }
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(2.7, .42, .1), MAT.trim);
+  sign.position.set(-1.75, 2.4, 2.07); sign.castShadow = true; fa.add(sign);
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(2.56, .3),
+    new THREE.MeshBasicMaterial({ map:textTexture('THE JACARANDA — TEA ROOMS') }));
+  face.position.set(-1.75, 2.4, 2.14); fa.add(face);
+
+  /* 立面 B：两扇橱窗 + 立柱 */
+  put(fb, makeShopWindow(1.15), -1.0, 0);
+  put(fb, makeShopWindow(1.15), -2.45, 0);
+  for(const pz of [-0.12, -1.75, -3.12]){
+    const pil = new THREE.Mesh(new THREE.BoxGeometry(.26, 1.94, .14), MAT.trim);
+    pil.rotation.y = Math.PI/2; pil.position.set(2.06, 1.26, pz); pil.castShadow = true; fb.add(pil);
+  }
+}
+
+/* —— 入口门 + 门楣气窗 + 雨棚 + 壁灯 + 台阶 —— */
+{
+  const g = new THREE.Group(); g.position.set(.3, .27, 2.2); fa.add(g);
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(1.12, 2.12, .12), MAT.joineryDark);
+  frame.position.set(0, 1.06, .03); g.add(frame);
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(.94, 2.0, .06), MAT.door);
+  panel.position.set(0, 1.0, .07); g.add(panel);
+  for(const py of [.55, 1.45]) for(const px of [-.22, .22]){
+    const p = new THREE.Mesh(new THREE.BoxGeometry(.3, .62, .02), MAT.joineryDark);
+    p.position.set(px, py, .105); g.add(p);
+  }
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(.034, 10, 10), MAT.brass);
+  knob.position.set(.32, 1.02, .12); g.add(knob);
+  const transom = new THREE.Mesh(new THREE.ExtrudeGeometry(archShapePts(.9, .3), { depth:.03, bevelEnabled:false, curveSegments:12 }), MAT.litGlass);
+  transom.position.set(0, 2.12, .05); g.add(transom);      // 夜晚门楣透暖光
+  const step = new THREE.Mesh(new THREE.BoxGeometry(1.4, .13, .6), MAT.plinth);
+  step.position.set(0, -.205, .3); g.add(step);
+
+  /* 条纹雨棚：紫 / 奶油交替窄板，向街面微微放坡 */
+  const awn = new THREE.Group(); awn.position.set(.3, 2.72, 2.2); awn.rotation.x = .36; fa.add(awn);
+  for(let i=0;i<9;i++){
+    const slat = new THREE.Mesh(new THREE.BoxGeometry(1.5, .04, .092), i%2 ? MAT.trim : MAT.joinery);
+    slat.position.set(0, 0, .06 + i*.094); slat.castShadow = true; awn.add(slat);
+  }
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(1.54, .05, .05), MAT.iron);
+  bar.position.set(0, -.01, .88); awn.add(bar);
+  for(const sx of [-.62, .62]){
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, .95, 6), MAT.iron);
+    rod.rotation.x = Math.PI/2 - .36; rod.position.set(sx, -.18, .48); awn.add(rod);
+  }
+
+  /* 壁灯（铜托 + 琥珀玻璃罩）×2 + 一盏点光源 */
+  const sconce = sx => {
+    const s = new THREE.Group(); s.position.set(sx, 2.0, 2.24); fa.add(s);
+    const bracket = new THREE.Mesh(new THREE.BoxGeometry(.05, .16, .1), MAT.iron);
+    bracket.position.set(0, -.08, .02); s.add(bracket);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(.15, .21, .15), MAT.lampIron);
+    body.position.z = .1; s.add(body);
+    const gl = new THREE.Mesh(new THREE.BoxGeometry(.1, .15, .1), MAT.sconceGlass);
+    gl.position.z = .1; s.add(gl);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(.12, .1, 4), MAT.lampIron);
+    cap.position.set(0, .17, .1); cap.rotation.y = Math.PI/4; s.add(cap);
+    const gs = glowSprite(.55); gs.position.set(0, .06, .12); s.add(gs);
+    s.traverse(o => { if(o.isMesh) o.castShadow = true; });
+  };
+  sconce(-0.5); sconce(0.95);
+  sconceLight = new THREE.PointLight(0xffb46a, 0, 4.5, 1.8);
+  sconceLight.position.set(.3, 2.35, 2.75); scene.add(sconceLight);
+}
+
+/* —— 二层：铁艺阳台（栏杆 + 装饰环 + 紫木地板） —— */
+{
+  const bx = -1.15, bw = 4.1, bz = 2.66, bd = .88;
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(bw, .09, bd), MAT.joineryDark);
+  slab.position.set(bx, 2.78, bz); slab.castShadow = slab.receiveShadow = true; fa.add(slab);
+  for(let i=0;i<10;i++){                                     // 紫木地板条
+    const plank = new THREE.Mesh(new THREE.BoxGeometry(bw-.06, .035, .078), MAT.woodPurple);
+    plank.position.set(bx, 2.845, bz - bd/2 + .06 + i*.085); plank.castShadow = true; fa.add(plank);
+  }
+  const railY = [2.98, 3.6];
+  for(const y of railY){
+    const r = new THREE.Mesh(new THREE.BoxGeometry(bw, .045, .045), MAT.iron);
+    r.position.set(bx, y, bz + bd/2); r.castShadow = true; fa.add(r);
+  }
+  const nBars = 13;
+  for(let i=0;i<nBars;i++){
+    const x = bx - bw/2 + .12 + i*(bw-.24)/(nBars-1);
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(.017, .017, .58, 6), MAT.iron);
+    bar.position.set(x, 3.29, bz + bd/2); bar.castShadow = true; fa.add(bar);
+    if(i < nBars-1 && i%2===0){                              // 铁艺装饰环
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(.05, .013, 6, 14), MAT.iron);
+      ring.position.set(x + (bw-.24)/(nBars-1)/2, 3.29, bz + bd/2); fa.add(ring);
+    }
+  }
+  for(const ex of [bx-bw/2, bx+bw/2]){                        // 两端侧栏
+    const r = new THREE.Mesh(new THREE.BoxGeometry(.045, .045, bd), MAT.iron);
+    r.position.set(ex, 3.6, bz); r.castShadow = true; fa.add(r);
+    const r2 = new THREE.Mesh(new THREE.BoxGeometry(.045, .045, bd), MAT.iron);
+    r2.position.set(ex, 2.98, bz); fa.add(r2);
+    for(let i=0;i<3;i++){
+      const bar = new THREE.Mesh(new THREE.CylinderGeometry(.016, .016, .58, 6), MAT.iron);
+      bar.position.set(ex, 3.29, bz - bd/2 + .14 + i*.3); fa.add(bar);
+    }
+  }
+  /* 阳台落地门（玻璃，夜里透暖） */
+  const fd = makeWindow({ w:.9, h:2.0, lit:true });
+  fd.position.set(.3, 3.02, 2.18); fa.add(fd);
+  /* 二层拱窗 ×3（右两扇在阳台内） */
+  for(const wx of [-2.75, -1.7, -.65]){
+    const win = makeWindow({ w:.8, h:1.15, arch:true, lit:litDice() });
+    win.position.set(wx, 3.05, 2.18); fa.add(win);
+  }
+}
+
+/* —— 二、三层窗（立面 A / B / 圆弧转角） —— */
+{
+  for(const wx of [-3.0, -1.95, -.85, .35]){                 // A 三层
+    const win = makeWindow({ w:.8, h:1.2, lit:litDice() });
+    win.position.set(wx, 5.5, 2.18); fa.add(win);
+  }
+  for(const wz of [-.4, -1.6, -2.8]){                        // B 二层拱窗 + 三层
+    const w2 = makeWindow({ w:.8, h:1.15, arch:true, lit:litDice() });
+    w2.rotation.y = Math.PI/2; w2.position.set(2.18, 3.05, wz); fb.add(w2);
+    const w3 = makeWindow({ w:.8, h:1.2, lit:litDice() });
+    w3.rotation.y = Math.PI/2; w3.position.set(2.18, 5.5, wz); fb.add(w3);
+  }
+  /* 圆弧转角：二层圆窗 + 三层拱龛 + 一层铜牌 */
+  const ang = Math.PI/4, cx = 1.0, cz = 1.2, R = 1.0;
+  const px = cx + Math.sin(ang)*R, pz = cz + Math.cos(ang)*R;
+  const round = new THREE.Group(); round.position.set(px, 3.85, pz); round.rotation.y = Math.PI/4;
+  const rt = new THREE.Mesh(new THREE.TorusGeometry(.3, .05, 8, 24), MAT.joineryDark);
+  round.add(rt);
+  const rg = new THREE.Mesh(new THREE.CylinderGeometry(.28, .28, .02, 24), litDice()? MAT.litGlass : MAT.glass);
+  rg.rotation.x = Math.PI/2; round.add(rg);
+  const m1 = new THREE.Mesh(new THREE.BoxGeometry(.03, .56, .03), MAT.joineryDark); round.add(m1);
+  const m2 = new THREE.Mesh(new THREE.BoxGeometry(.56, .03, .03), MAT.joineryDark); round.add(m2);
+  round.traverse(o => { if(o.isMesh) o.castShadow = true; });
+  fa.add(round);
+
+  const niche = makeWindow({ w:.5, h:.7, arch:true, lit:false });
+  niche.position.set(px, 5.75, pz); niche.rotation.y = Math.PI/4; fa.add(niche);
+
+  const plaque = new THREE.Mesh(new THREE.CircleGeometry(.21, 20), MAT.brass);
+  plaque.position.set(px + Math.sin(ang)*.02, 1.7, pz + Math.cos(ang)*.02);
+  plaque.rotation.y = ang; plaque.castShadow = true; fa.add(plaque);
+
+  /* —— 背面与侧墙的简易窗（环绕查看不穿帮） —— */
+  const rear = (x, y, z, ry, lit) => {
+    const w = makeWindow({ w:.72, h: y < 5 ? 1.15 : 1.2, lit });
+    w.rotation.y = ry; w.position.set(x, y, z); scene.add(w);
+  };
+  for(const wx of [-3.0, -2.0, -1.0]){          // A 翼后墙（z=-0.6）
+    rear(wx, 3.05, -0.6, Math.PI, litDice());
+    rear(wx, 5.5,  -0.6, Math.PI, litDice());
+  }
+  for(const wz of [-1.6, -2.8]){                // B 翼后墙（z=-3.6）与侧墙（x=-0.6）
+    rear(0.7, 3.05, -3.6, Math.PI, litDice());
+    rear(0.7, 5.5,  -3.6, Math.PI, litDice());
+    rear(-0.6, 3.05, wz, -Math.PI/2, litDice());
+    rear(-0.6, 5.5,  wz, -Math.PI/2, litDice());
+  }
+  rear(-3.6, 3.05, 0.8, -Math.PI/2, litDice()); // A 翼左山墙
+  rear(-3.6, 5.5,  1.2, -Math.PI/2, litDice());
+}
+
+/* ================================================================
+   6. 街道道具
+================================================================ */
+
+/* —— 紫色木条长椅（门前） —— */
+function makeBench(){
+  const g = new THREE.Group();
+  for(const sx of [-.56, .56]){
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(.06, .44, .5), MAT.woodPurpleD);
+    leg.position.set(sx, .22, -.02); g.add(leg);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(.06, .58, .06), MAT.woodPurpleD);
+    back.position.set(sx, .72, .2); back.rotation.x = -.14; g.add(back);
+  }
+  for(let i=0;i<4;i++){
+    const s = new THREE.Mesh(new THREE.BoxGeometry(1.18, .045, .092), MAT.woodPurple);
+    s.position.set(0, .455, -.16 + i*.098); s.castShadow = true; g.add(s);
+  }
+  for(let i=0;i<3;i++){
+    const b = new THREE.Mesh(new THREE.BoxGeometry(1.18, .085, .04), MAT.woodPurple);
+    b.position.set(0, .64 + i*.13, .235 + i*.014); b.rotation.x = -.14; b.castShadow = true; g.add(b);
+  }
+  g.traverse(o => { if(o.isMesh) o.castShadow = o.receiveShadow = true; });
+  return g;
+}
+const bench = makeBench(); bench.position.set(.3, 0, 3.08); scene.add(bench);
+aoPatch(1.7, 1.0, .3, .3, .09, 3.08);
+
+/* —— 街灯（可照亮花簇 / 树干 / 地面） —— */
+function makeLamp(x, z){
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(.16, .2, .34, 12), MAT.lampIron);
+  base.position.y = .17; base.castShadow = true; g.add(base);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(.045, .06, 2.7, 10), MAT.lampIron);
+  pole.position.y = 1.65; pole.castShadow = true; g.add(pole);
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(.075, .02, 6, 14), MAT.brass);
+  collar.rotation.x = Math.PI/2; collar.position.y = 2.95; g.add(collar);
+  const head = new THREE.Group(); head.position.y = 3.18; g.add(head);
+  const box = new THREE.Mesh(new THREE.BoxGeometry(.3, .36, .3), MAT.lampIron);
+  box.castShadow = true; head.add(box);
+  const gl = new THREE.Mesh(new THREE.BoxGeometry(.24, .3, .24), MAT.lampGlass); head.add(gl);
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(.26, .18, 4), MAT.lampIron);
+  cap.position.y = .27; cap.rotation.y = Math.PI/4; head.add(cap);
+  const fin = new THREE.Mesh(new THREE.SphereGeometry(.045, 8, 8), MAT.brass);
+  fin.position.y = .4; head.add(fin);
+  const gs = glowSprite(1.5); gs.position.y = 3.2; g.add(gs);
+  const pl = new THREE.PointLight(0xffb46a, 0, 7.5, 1.8);
+  pl.position.y = 3.2; g.add(pl); lampLights.push(pl);
+  return g;
+}
+makeLamp(3.45, 2.4);   // 转角：照亮小蓝花楹与咖啡座
+makeLamp(-3.35, 2.95); // 左侧：照亮前景树与长椅区
+
+/* —— 咖啡圆桌 + 两椅（转角 sidewalk） —— */
+function makeCafe(){
+  const g = new THREE.Group(); g.position.set(2.75, 0, 3.0); g.rotation.y = -.4;
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(.34, .34, .035, 20), MAT.trim);
+  top.position.y = .68; top.castShadow = true; g.add(top);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(.34, .018, 6, 24), MAT.iron);
+  rim.rotation.x = Math.PI/2; rim.position.y = .7; g.add(rim);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(.028, .028, .66, 8), MAT.iron);
+  pole.position.y = .34; g.add(pole);
+  const foot = new THREE.Mesh(new THREE.CylinderGeometry(.2, .22, .04, 16), MAT.iron);
+  foot.position.y = .03; g.add(foot);
+  const chair = (px, pz, ry) => {
+    const c = new THREE.Group(); c.position.set(px, 0, pz); c.rotation.y = ry;
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(.34, .04, .34), MAT.woodPurple);
+    seat.position.y = .45; seat.castShadow = true; c.add(seat);
+    for(const [lx, lz] of [[-.14,-.14],[.14,-.14],[-.14,.14],[.14,.14]]){
+      const l = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, .45, 6), MAT.iron);
+      l.position.set(lx, .225, lz); c.add(l);
+    }
+    for(const sx of [-.14, .14]){
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, .42, 6), MAT.iron);
+      p.position.set(sx, .66, -.15); p.rotation.x = -.12; c.add(p);
+    }
+    const bk = new THREE.Mesh(new THREE.BoxGeometry(.3, .05, .03), MAT.woodPurple);
+    bk.position.set(0, .84, -.175); bk.rotation.x = -.12; bk.castShadow = true; c.add(bk);
+    return c;
+  };
+  g.add(chair(-.35, .22, 1.2), chair(.32, .3, -2.4));
+  scene.add(g);
+  aoPatch(1.6, 1.6, .28, 2.75, .09, 3.0);
+}
+makeCafe();
+
+/* —— 邮筒 / 护柱 / 花箱 / 吊篮 —— */
+{
+  const mail = new THREE.Group(); mail.position.set(-1.9, 0, 3.32); mail.rotation.y = .5; scene.add(mail);
+  const foot = new THREE.Mesh(new THREE.CylinderGeometry(.18, .2, .1, 12), MAT.lampIron);
+  foot.position.y = .05; mail.add(foot);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(.15, .15, 1.0, 14), MAT.joinery);
+  body.position.y = .6; body.castShadow = true; mail.add(body);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.15, 14, 10, 0, Math.PI*2, 0, Math.PI/2), MAT.joinery);
+  dome.position.y = 1.1; mail.add(dome);
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(.05, 10, 8), MAT.brass);
+  ball.position.y = 1.3; mail.add(ball);
+  const slot = new THREE.Mesh(new THREE.BoxGeometry(.18, .026, .05), MAT.lampIron);
+  slot.position.set(0, 1.0, .14); mail.add(slot);
+  aoPatch(.8, .8, .3, -1.9, .09, 3.32);
+
+  for(const [bx, bz] of [[1.5, 3.56], [-.8, 3.56], [-2.6, 3.56], [3.56, 1.5]]){
+    const b = new THREE.Group(); b.position.set(bx, 0, bz); scene.add(b);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(.062, .07, .5, 10), MAT.trim);
+    post.position.y = .25; post.castShadow = true; b.add(post);
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(.066, .066, .09, 10), MAT.joinery);
+    band.position.y = .42; b.add(band);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(.062, 10, 8, 0, Math.PI*2, 0, Math.PI/2), MAT.joineryDark);
+    cap.position.y = .5; b.add(cap);
+  }
+
+  const planter = new THREE.Group(); planter.position.set(-2.2, .26, 2.42); scene.add(planter);
+  const box = new THREE.Mesh(new THREE.BoxGeometry(.72, .3, .36), MAT.woodPurpleD);
+  box.position.y = .1; box.castShadow = true; planter.add(box);
+  const soil = new THREE.Mesh(new THREE.BoxGeometry(.64, .05, .3), MAT.soil);
+  soil.position.y = .26; planter.add(soil);
+  const prng = mulberry32(7);
+  for(let i=0;i<6;i++){
+    const blob = new THREE.Mesh(new THREE.IcosahedronGeometry(.075+prng()*.04, 1), MAT.cluster);
+    blob.position.set(-.26+prng()*.52, .3+prng()*.05, -.1+prng()*.2);
+    paintGeom(blob.geometry, new THREE.Color().setHSL(.72, .5, .6+prng()*.2));
+    blob.castShadow = true; planter.add(blob);
+  }
+  aoPatch(1.0, .7, .3, -2.2, .09, 2.42);
+
+  /* 立面 B 转角吊篮 */
+  const bk = new THREE.Group(); bk.position.set(2.2, 2.05, 1.5); scene.add(bk);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(.24, .026, .026), MAT.iron);
+  arm.position.set(-.12, .18, 0); bk.add(arm);                 // 挑臂（连墙）
+  const hook = new THREE.Mesh(new THREE.TorusGeometry(.06, .011, 6, 12, Math.PI), MAT.iron);
+  hook.position.set(-.2, .12, 0); bk.add(hook);
+  const pot = new THREE.Mesh(new THREE.CylinderGeometry(.13, .1, .12, 12), toon(0x8a5c3e));
+  pot.position.set(-.2, -.08, 0); pot.castShadow = true; bk.add(pot);
+  for(const sx of [-.26, -.14]){
+    const str = new THREE.Mesh(new THREE.CylinderGeometry(.005, .005, .22, 4), MAT.iron);
+    str.position.set(sx, .05, 0); bk.add(str);
+  }
+  for(let i=0;i<4;i++){
+    const f = new THREE.Mesh(new THREE.IcosahedronGeometry(.06 + (i%2)*.02, 1), MAT.cluster);
+    f.position.set(-.26 + (i%3)*.07, -.02 - (i%2)*.05, -.03 + (i>1? .06 : -.03));
+    paintGeom(f.geometry, new THREE.Color().setHSL(.72, .5, .62));
+    bk.add(f);
+  }
+  swayers.push({ node: bk, amp:.05, speed:1.1, phase:2.1 });
+}
+
+/* ================================================================
+   7. 程序化蓝花楹
+   弯曲分叉树干（CatmullRom + Tube）→ 细枝 → 花簇沿枝分布，
+   冠层块之间留出透光空隙；树冠整体轻摆。
+================================================================ */
+function makeTree(cfg){
+  const rng = mulberry32(cfg.seed);
+  const group = new THREE.Group();
+  group.position.set(cfg.p[0], 0, cfg.p[2]);
+  const trunkGeos = [], twigGeos = [], blobGeos = [], leafGeos = [];
+  const MAXD = 3, h = cfg.h;
+  const spreadScale = Math.min(1, 7.5 / h);   // 高树收窄横向铺展，避免树冠越过底座太多
+
+  function addBlob(p, r){
+    const g = new THREE.IcosahedronGeometry(r, 1);
+    jitterGeom(g, .34, rng);
+    g.translate(p.x, p.y, p.z);
+    paintGeom(g, new THREE.Color().setHSL(.715 + (rng()-.5)*.04, .42 + rng()*.22, .56 + rng()*.2));
+    blobGeos.push(g);
+  }
+  function addLeaf(p, r){
+    const g = new THREE.IcosahedronGeometry(r, 1);
+    jitterGeom(g, .3, rng);
+    g.translate(p.x, p.y, p.z);
+    leafGeos.push(g);
+  }
+  function grow(origin, dir, len, radius, depth){
+    const pts = [origin.clone()];
+    const d = dir.clone().normalize();
+    const p = origin.clone();
+    for(let i=0;i<3;i++){
+      d.lerp(UP, depth===0 ? .1 : .24);
+      d.x += (rng()-.5)*.3; d.z += (rng()-.5)*.3;
+      if(depth===1){ d.x *= 1.25; d.z *= 1.25; }        // 主枝向外铺展 → 宽伞形冠
+      d.normalize();
+      p.addScaledVector(d, len/3);
+      pts.push(p.clone());
+    }
+    const curve = new THREE.CatmullRomCurve3(pts);
+    const tube = new THREE.TubeGeometry(curve, 8, radius, 6, false);
+    (depth < 2 ? trunkGeos : twigGeos).push(tube);
+
+    if(depth < MAXD){
+      const n = depth===0 ? 3+Math.floor(rng()*2) : 2+Math.floor(rng()*2);
+      for(let i=0;i<n;i++){
+        const t = .5 + rng()*.45;
+        const cp = curve.getPointAt(Math.min(t, 1));
+        const cd = curve.getTangentAt(Math.min(t, 1)).clone();
+        const axis = new THREE.Vector3(rng()-.5, (rng()-.5)*.6, rng()-.5).normalize();
+        cd.applyAxisAngle(axis, (.3 + rng()*.5) * (depth===0 ? 1 : .8));
+        const outw = new THREE.Vector3(cp.x, 0, cp.z);
+        if(outw.lengthSq() > 1e-6){ outw.normalize().multiplyScalar(depth===0 ? .55 : .3); cd.add(outw); }
+        const [upY, upAdd] = cfg.up ?? [.55, .3];
+        cd.y = Math.abs(cd.y)*upY + upAdd;
+        cd.normalize();
+        grow(cp, cd, len*(.52 + rng()*.18)*spreadScale, radius*.55, depth+1);
+      }
+      if(depth===2 && rng() < .6) addBlob(curve.getPointAt(.7), .24 + rng()*.18);
+    }else{
+      const n = 3 + Math.floor(rng()*2);
+      for(let i=0;i<n;i++) addBlob(curve.getPointAt(Math.min(.3 + (i + rng()*.6)/n*.65, 1)), .21 + rng()*.21);
+      addBlob(pts[pts.length-1], .27 + rng()*.24);
+      if(rng() < .6) addLeaf(pts[pts.length-1].clone().add(new THREE.Vector3((rng()-.5)*.5, .1, (rng()-.5)*.5)), .13 + rng()*.1);
+    }
+  }
+
+  const baseDir = new THREE.Vector3((rng()-.5)*.9, 1, (rng()-.5)*.9).normalize();
+  /* 高树收窄横向铺展时按链长比例加长主干，保证总高仍 ≈ h */
+  const q = .61*spreadScale;
+  const K = 1 + q + q*q + q*q*q;
+  grow(new THREE.Vector3(0,0,0), baseDir, h*(cfg.tv ?? .42)*(2.21/K), Math.max(.13, h*.022), 0);
+
+  /* 合并（统一转非索引）并按“树冠枢轴”分层：主干静止，树冠轻摆 */
+  const ni = g => g.index ? g.toNonIndexed() : g;
+  const py = h*.52;
+  const shift = g => { g.translate(0, -py, 0); return g; };
+  const trunkMesh = new THREE.Mesh(mergeGeometries(trunkGeos.map(ni)), MAT.trunk);
+  const twigMesh  = new THREE.Mesh(mergeGeometries(twigGeos.map(ni).map(shift)), MAT.twig);
+  const blobMesh  = new THREE.Mesh(mergeGeometries(blobGeos.map(ni).map(shift)), MAT.cluster);
+  const crown = new THREE.Group(); crown.position.y = py;
+  crown.add(twigMesh, blobMesh);
+  if(leafGeos.length) crown.add(new THREE.Mesh(mergeGeometries(leafGeos.map(ni).map(shift)), MAT.leaf));
+  [trunkMesh, twigMesh, blobMesh, ...crown.children].forEach(m => { m.castShadow = m.receiveShadow = true; });
+  group.add(trunkMesh, crown);
+  swayers.push({ node:crown, amp:.02 + rng()*.012, speed:.55 + rng()*.35, phase:rng()*Math.PI*2 });
+  crownZones.push({ x:cfg.p[0], z:cfg.p[2], y:h*.95, r:Math.min(cfg.cr ?? h*.42, 2.6) });
+
+  /* 树池 */
+  const pool = new THREE.Mesh(new THREE.CylinderGeometry(.42, .46, .09, 18), MAT.soil);
+  pool.position.set(cfg.p[0], .115, cfg.p[2]); pool.receiveShadow = true; scene.add(pool);
+  scene.add(group);
+  aoPatch(h*.9, h*.9, .2, cfg.p[0], .17, cfg.p[2]);
+}
+/* 前低后高：两侧 + 后方围合（后排树冠探出屋檐） */
+[
+  { p:[-3.95, 0,  1.45], h:5.2, seed:11, cr:1.7 },
+  { p:[ 3.15, 0,  1.30], h:3.8, seed:22, cr:1.5 },
+  { p:[ 3.00, 0, -1.20], h:5.6, seed:33, cr:2.0 },
+  { p:[-3.30, 0, -3.35], h:10.8, seed:44, cr:2.3, tv:.55, up:[.7, .45] },
+  { p:[-0.50, 0, -3.75], h:11.5, seed:55, cr:2.3, tv:.55, up:[.72, .48] },
+  { p:[ 3.10, 0, -3.40], h:10.2, seed:66, cr:2.2, tv:.55, up:[.7, .45] },
+].forEach(makeTree);
+
+/* ================================================================
+   8. 花瓣：飘落（实例化） + 地面积落（实例化）
+================================================================ */
+const PETAL_N = 150;
+petalMatFall = new THREE.MeshBasicMaterial({ color:0xffffff, side:THREE.DoubleSide });
+const petalMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(.1, .068), petalMatFall, PETAL_N);
+petalMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+scene.add(petalMesh);
+
+const petals = [];
+const dummy = new THREE.Object3D();
+function respawn(i, first=false){
+  const p = petals[i];
+  const zone = crownZones[Math.floor(Math.random()*crownZones.length)];
+  if(Math.random() < .65){
+    const a = Math.random()*Math.PI*2, r = Math.sqrt(Math.random())*zone.r;
+    p.x = zone.x + Math.cos(a)*r; p.z = zone.z + Math.sin(a)*r;
+  }else{
+    p.x = (Math.random()*2-1)*4.4; p.z = (Math.random()*2-1)*4.4;
+  }
+  p.y = first ? .3 + Math.random()*7.5 : 6.2 + Math.random()*3.5;
+  p.v = .45 + Math.random()*.5;
+  p.f1 = .8 + Math.random()*1.2; p.f2 = .7 + Math.random()*1.1;
+  p.ph = Math.random()*Math.PI*2;
+  p.rx = Math.random()*Math.PI; p.ry = Math.random()*Math.PI; p.rz = Math.random()*Math.PI;
+  p.s1 = (Math.random()-.5)*3; p.s2 = (Math.random()-.5)*3;
+  p.s = .7 + Math.random()*.6;
+}
+for(let i=0;i<PETAL_N;i++){ petals.push({}); respawn(i, true); }
+{
+  const shades = [0x9d8be0, 0x8577c9, 0xb3a5ec];
+  for(let i=0;i<PETAL_N;i++) petalMesh.setColorAt(i, new THREE.Color(shades[i%3]));
+  petalMesh.instanceColor.needsUpdate = true;
+}
+function updatePetals(dt, t){
+  for(let i=0;i<PETAL_N;i++){
+    const p = petals[i];
+    p.y -= p.v*dt;
+    p.x += Math.sin(t*p.f1 + p.ph)*.5*dt;
+    p.z += Math.cos(t*p.f2 + p.ph*1.3)*.4*dt;
+    p.rx += p.s1*dt; p.ry += p.s2*dt;
+    if(p.y <= .04){ respawn(i); continue; }
+    dummy.position.set(p.x, p.y, p.z);
+    dummy.rotation.set(p.rx, p.ry, p.rz);
+    dummy.scale.setScalar(p.y < .45 ? Math.max(p.y/.45, .02)*p.s : p.s);
+    dummy.updateMatrix();
+    petalMesh.setMatrixAt(i, dummy.matrix);
+  }
+  petalMesh.instanceMatrix.needsUpdate = true;
+}
+/* 地面积落的花瓣 */
+{
+  const N = 230;
+  const mat = new THREE.MeshBasicMaterial({ color:0xffffff });
+  const mesh = new THREE.InstancedMesh(new THREE.CircleGeometry(.05, 6), mat, N);
+  const rng = mulberry32(99);
+  const surfaceY = (x, z) => {
+    for(const t of crownZones) if(Math.hypot(x-t.x, z-t.z) < .42) return .165;
+    return (z > 3.5 || x > 3.5) ? .058 : .082;
+  };
+  const shades = [0x9d8be0, 0x8374c4, 0xb0a2ea, 0x776ab0];
+  let idx = 0;
+  for(const z of crownZones){
+    for(let i=0;i<32 && idx<N;i++){
+      const a = rng()*Math.PI*2, r = Math.sqrt(rng())*z.r*1.15;
+      const x = z.x + Math.cos(a)*r, zz = z.z + Math.sin(a)*r;
+      if(Math.abs(x) > 4.9 || Math.abs(zz) > 4.9) continue;
+      dummy.position.set(x, surfaceY(x, zz), zz);
+      dummy.rotation.set(-Math.PI/2, 0, rng()*Math.PI*2);
+      dummy.scale.setScalar(.6 + rng()*.9);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(idx, dummy.matrix);
+      mesh.setColorAt(idx, new THREE.Color(shades[Math.floor(rng()*4)]));
+      idx++;
+    }
+  }
+  while(idx < N){
+    const x = (rng()*2-1)*4.6, zz = (rng()*2-1)*4.6;
+    dummy.position.set(x, surfaceY(x, zz), zz);
+    dummy.rotation.set(-Math.PI/2, 0, rng()*Math.PI*2);
+    dummy.scale.setScalar(.5 + rng()*.8);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(idx, dummy.matrix);
+    mesh.setColorAt(idx, new THREE.Color(shades[Math.floor(rng()*4)]));
+    idx++;
+  }
+  mesh.instanceMatrix.needsUpdate = true;
+  mesh.instanceColor.needsUpdate = true;
+  groundPetalMat = mat;
+  scene.add(mesh);
+}
+
+/* ================================================================
+   9. 时间切换 / UI / 主循环
+================================================================ */
+function setMode(name){
+  tgt = MODES[name];
+  document.body.dataset.mode = name;
+  document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('active', b.dataset.mode === name));
+}
+document.getElementById('modes').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(b) setMode(b.dataset.mode);
+});
+
+/* 双击复位机位 */
+let fly = null;
+renderer.domElement.addEventListener('dblclick', () => {
+  fly = { t:0, fp:camera.position.clone(), ft:controls.target.clone() };
+});
+
+/* 自适应：竖屏时增大视场，保证底座完整 */
+function onResize(){
+  camera.aspect = innerWidth/innerHeight;
+  camera.fov = camera.aspect < 1 ? 42/Math.max(.55, camera.aspect) : 42;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+}
+addEventListener('resize', onResize); onResize();
+
+/* 主循环 */
+const clock = new THREE.Clock();
+const ease = x => x*x*(3-2*x);
+function loop(){
+  const dt = Math.min(clock.getDelta(), .05);
+  const t  = clock.elapsedTime;
+
+  /* 昼夜参数插值 */
+  const k = 1 - Math.exp(-dt*3.2);
+  cur.sunI += (tgt.sunI-cur.sunI)*k;   cur.sunC.lerp(tgt.sunC, k);     cur.sunPos.lerp(tgt.sunPos, k);
+  cur.hemiI += (tgt.hemiI-cur.hemiI)*k; cur.hemiSky.lerp(tgt.hemiSky, k); cur.hemiGnd.lerp(tgt.hemiGnd, k);
+  cur.ambI += (tgt.ambI-cur.ambI)*k;   cur.lampI += (tgt.lampI-cur.lampI)*k;
+  cur.scI += (tgt.scI-cur.scI)*k;      cur.winE += (tgt.winE-cur.winE)*k;
+  cur.lampE += (tgt.lampE-cur.lampE)*k; cur.scE += (tgt.scE-cur.scE)*k;
+  cur.glowO += (tgt.glowO-cur.glowO)*k; cur.petalC.lerp(tgt.petalC, k);
+  cur.envI += (tgt.envI-cur.envI)*k;   cur.expo += (tgt.expo-cur.expo)*k;
+
+  sun.intensity = cur.sunI; sun.color.copy(cur.sunC); sun.position.copy(cur.sunPos);
+  hemi.intensity = cur.hemiI; hemi.color.copy(cur.hemiSky); hemi.groundColor.copy(cur.hemiGnd);
+  amb.intensity = cur.ambI;
+  const flick = 1 + .05*Math.sin(t*11.3) + .04*Math.sin(t*23.7 + 1.7);   // 灯光轻颤
+  for(const l of lampLights) l.intensity = cur.lampI*flick;
+  if(sconceLight) sconceLight.intensity = cur.scI*flick*.9;
+  MAT.litGlass.emissiveIntensity = cur.winE;
+  MAT.interior.emissiveIntensity = cur.winE*.9;
+  MAT.lampGlass.emissiveIntensity = cur.lampE;
+  MAT.sconceGlass.emissiveIntensity = cur.scE;
+  for(const s of glowSprites) s.material.opacity = cur.glowO;
+  if(petalMatFall) petalMatFall.color.copy(cur.petalC);
+  if(groundPetalMat) groundPetalMat.color.copy(cur.petalC);
+  scene.environmentIntensity = cur.envI;
+  renderer.toneMappingExposure = cur.expo;
+
+  /* 树梢轻摆 */
+  for(const s of swayers){
+    s.node.rotation.z = Math.sin(t*s.speed + s.phase)*s.amp;
+    s.node.rotation.x = Math.sin(t*s.speed*.83 + s.phase*1.7)*s.amp*.7;
+  }
+  updatePetals(dt, t);
+
+  if(fly){
+    fly.t += dt/.9;
+    const e = ease(Math.min(fly.t, 1));
+    camera.position.lerpVectors(fly.fp, HOME_P, e);
+    controls.target.lerpVectors(fly.ft, HOME_T, e);
+    if(fly.t >= 1) fly = null;
+  }
+  controls.update();
+  renderer.render(scene, camera);
+}
+renderer.setAnimationLoop(loop);
+veil.classList.add('off');
+
+</script>
+</body>
+</html>
